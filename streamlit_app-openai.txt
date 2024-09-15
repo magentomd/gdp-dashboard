@@ -94,7 +94,7 @@ def load_data():
 
 # Function to get insights from OpenAI
 def get_openai_insights(prompt):
-    openai.api_key = st.secrets["openai_api_key"]  # Fetch API key from Streamlit secrets
+    openai.api_key = st.secrets["openai_api_key"]  # Use Streamlit secrets for the OpenAI key
 
     response = openai.Completion.create(
         engine="text-davinci-003",
