@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+import plotly.graph_objects as go
 
 # Set Streamlit configuration
 st.set_page_config(
@@ -105,7 +106,33 @@ st.title(':bar_chart: OJO Dashboard')
 st.subheader('Financial Ratios')
 st.dataframe(df_ratios)
 
-# Section 2: Plot Sales and Operating Income Over Time
+# Section 2: KPI Table
+st.subheader('Key Performance Indicators (KPIs)')
+latest_month = df_income['Month'].iloc[-1]
+total_revenue = df_income['Sales'].iloc[-1]
+total_cogs = df_income['Cost_of_Goods_Sold'].iloc[-1]
+net_income = df_income['Net_Income'].iloc[-1]
+
+cols = st.columns(3)
+cols[0].metric("Total Revenue", f"${total_revenue:,.2f}")
+cols[1].metric("Cost of Goods Sold", f"${total_cogs:,.2f}")
+cols[2].metric("Net Income", f"${net_income:,.2f}")
+
+# Section 3: Waterfall Chart
+st.subheader('Waterfall Chart: Revenue Breakdown')
+fig_waterfall = go.Figure(go.Waterfall(
+    name="Revenue Breakdown",
+    orientation="v",
+    measure=["absolute", "relative", "relative", "relative"],
+    x=["Sales", "Cost of Goods Sold", "Operating Income", "Net Income"],
+    y=[total_revenue, -total_cogs, df_income['Operating_Income'].iloc[-1], net_income],
+    connector={"line": {"color": "rgb(63, 63, 63)"}},
+))
+
+fig_waterfall.update_layout(title="Waterfall Chart of Revenue", showlegend=True)
+st.plotly_chart(fig_waterfall)
+
+# Section 4: Sales and Operating Income Over Time
 st.subheader('Sales and Operating Income Over Time')
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.plot(df_income['Month'], df_income['Sales'], label='Sales')
@@ -117,7 +144,16 @@ plt.xticks(rotation=45)
 plt.legend()
 st.pyplot(fig)
 
-# Section 3: Correlation Heatmap of Financial Metrics
+# Section 5: Total Revenue and Budget Misses
+st.subheader('Total Revenue and Budget Miss Analysis')
+budget_target = 1.2 * total_revenue  # Assuming budget is 20% higher than actual sales
+revenue_miss = budget_target - total_revenue
+
+cols = st.columns(2)
+cols[0].metric("Total Revenue", f"${total_revenue:,.2f}")
+cols[1].metric("Budget Miss", f"${revenue_miss:,.2f}", delta_color="inverse")
+
+# Section 6: Correlation Heatmap of Financial Metrics
 st.subheader('Correlation Heatmap of Financial Metrics')
 cols_to_analyze = ['Sales', 'Gross_Profit', 'Total_Operating_Expenses', 'Net_Income']
 df_corr = df_income[cols_to_analyze].corr()
@@ -125,13 +161,6 @@ df_corr = df_income[cols_to_analyze].corr()
 fig, ax = plt.subplots(figsize=(10, 8))
 sns.heatmap(df_corr, annot=True, cmap='coolwarm', ax=ax)
 st.pyplot(fig)
-
-# Section 4: Metric Summary for Latest Month
-st.subheader(f'Metric Summary for {df_income["Month"].iloc[-1]}')
-cols = st.columns(4)
-
-for i, metric in enumerate(['Sales', 'Operating_Income', 'Net_Income']):
-    cols[i].metric(label=metric, value=f"${df_income[metric].iloc[-1]:,.2f}")
 
 # Close connection after fetching data
 conn.close()
