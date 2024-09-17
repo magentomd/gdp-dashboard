@@ -227,6 +227,30 @@ if st.button("Get Insights"):
     insights = get_openai_insights(user_input, data_context)
     st.write(insights)
 
+# Calculate the average income tax
+average_tax = df_income['Income_Tax'].mean()
+
+# Section 8: Display Average Tax as a KPI
+st.subheader('Tax Analysis')
+st.metric("Average Income Tax", f"${average_tax:,.2f}")
+
+# Section 9: Tax Breakdown Over Time (Line Chart)
+st.subheader('Income Tax Over Time')
+fig_tax, ax_tax = plt.subplots(figsize=(10, 6))
+ax_tax.plot(df_income['Month'], df_income['Income_Tax'], label='Income Tax', color='purple', marker='o')
+plt.xlabel('Month')
+plt.ylabel('Tax Amount ($)')
+plt.title('Income Tax Over Time')
+plt.xticks(rotation=45)
+plt.legend()
+st.pyplot(fig_tax)
+
+# Section 10: Add a New Table Showing Total Income, PreTax Income, and Taxes Paid
+st.subheader('Income Tax Breakdown Table')
+tax_breakdown = df_income[['Month', 'PreTax_Income', 'Income_Tax', 'Net_Income']]
+st.dataframe(tax_breakdown)
+
+
 # Custom CSS for styling
 st.markdown("""
     <style>
