@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import plotly.graph_objects as go
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 # Set Streamlit configuration
 st.set_page_config(
@@ -93,19 +95,33 @@ def load_data():
     return conn
 
 # Function to get insights from OpenAI
-def get_openai_insights(prompt):
-    openai.api_key = st.secrets["openai_api_key"]  # Fetch API key from Streamlit secrets
+# def get_openai_insights(prompt):
+#     openai.api_key = st.secrets["openai_api_key"]  # Fetch API key from Streamlit secrets
 
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        max_tokens=150,
-        n=1,
-        stop=None,
-        temperature=0.7
+#     response = openai.Completion.create(
+#         engine="text-davinci-003",
+#         prompt=prompt,
+#         max_tokens=150,
+#         n=1,
+#         stop=None,
+#         temperature=0.7
+#     )
+
+#     return response.choices[0].text.strip()
+
+# Function to get insights from OpenAI using ChatCompletion
+# Function to get insights from OpenAI using ChatCompletion
+def get_openai_insights(prompt):
+    # Create the OpenAI API request using the free "gpt-3.5-turbo" model
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",  # This model is free to use within OpenAI's free tier
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
     )
 
-    return response.choices[0].text.strip()
+    # Extract the 'content' from the first choice's message
+    return response.choices[0].message.content.strip()
 
 # Load data
 conn = load_data()
@@ -117,6 +133,14 @@ df_ratios = pd.read_sql_query("SELECT * FROM Ratios", conn)
 
 # Create the dashboard layout
 st.title(':bar_chart: OJO Dashboard')
+
+# # Section 7: OpenAI Insights
+# st.subheader("AI-Generated Insights")
+# user_input = st.text_area("Enter a question for AI insights:", "What can you tell me about the financial performance?")
+# if st.button("Get Insights"):
+#     prompt = f"Here is the financial data:\n{df_income.head()}\n\nProvide insights based on this data: {user_input}"
+#     insights = get_openai_insights(prompt)
+#     st.write(insights)
 
 # Section 1: Display Ratios Table
 st.subheader('Financial Ratios')
@@ -178,13 +202,13 @@ fig, ax = plt.subplots(figsize=(10, 8))
 sns.heatmap(df_corr, annot=True, cmap='coolwarm', ax=ax)
 st.pyplot(fig)
 
-# Section 7: OpenAI Insights
-st.subheader("AI-Generated Insights")
-user_input = st.text_area("Enter a question for AI insights:", "What can you tell me about the financial performance?")
-if st.button("Get Insights"):
-    prompt = f"Here is the financial data:\n{df_income.head()}\n\nProvide insights based on this data: {user_input}"
-    insights = get_openai_insights(prompt)
-    st.write(insights)
+# # Section 7: OpenAI Insights
+# st.subheader("AI-Generated Insights")
+# user_input = st.text_area("Enter a question for AI insights:", "What can you tell me about the financial performance?")
+# if st.button("Get Insights"):
+#     prompt = f"Here is the financial data:\n{df_income.head()}\n\nProvide insights based on this data: {user_input}"
+#     insights = get_openai_insights(prompt)
+#     st.write(insights)
 
 # Close connection after fetching data
 conn.close()
