@@ -26,6 +26,24 @@ def load_data():
         cursor = conn.cursor()
 
         # Create income_statement table
+        # cursor.execute('''
+        # CREATE TABLE income_statement (
+        #     Month TEXT,
+        #     Sales REAL,
+        #     Cost_of_Goods_Sold REAL,
+        #     Gross_Profit REAL,
+        #     Selling REAL,
+        #     Administrative REAL,
+        #     Total_Operating_Expenses REAL,
+        #     Operating_Income REAL,
+        #     Interest_Revenue REAL,
+        #     Dividend_Revenue REAL,
+        #     Interest_on_Loans REAL,
+        #     PreTax_Income REAL,
+        #     Income_Tax REAL,
+        #     Net_Income REAL
+        # );''')
+        # Create income_statement table
         cursor.execute('''
         CREATE TABLE income_statement (
             Month TEXT,
@@ -41,8 +59,16 @@ def load_data():
             Interest_on_Loans REAL,
             PreTax_Income REAL,
             Income_Tax REAL,
-            Net_Income REAL
+            Net_Income REAL,
+            Business REAL,
+            Region REAL,
+            Brand REAL,
+            Vice_President REAL,
+            State REAL
         );''')
+
+        # Create balance_sheet table
+
 
         # Load income_statement CSV from 'data' folder
         income_statement_file = Path(__file__).parent / 'data/income_statement_2324.csv'
@@ -50,6 +76,32 @@ def load_data():
         df_income.to_sql('income_statement', conn, if_exists='append', index=False)
 
         # Create balance_sheet table
+        # cursor.execute('''
+        # CREATE TABLE balance_sheet (
+        #     Month TEXT,
+        #     Cash REAL,
+        #     Accounts_Receivable REAL,
+        #     Inventory REAL,
+        #     Supplies REAL,
+        #     Pre_Paids REAL,
+        #     Total_Current_Assets REAL,
+        #     Land REAL,
+        #     Buildings REAL,
+        #     Equipment REAL,
+        #     Less_accum_depreciation REAL,
+        #     Net_PPE REAL,
+        #     Total_Assets REAL,
+        #     Short_Term_Notes_Payable REAL,
+        #     Accounts_Payable REAL,
+        #     Total_Current_Liabilities REAL,
+        #     Long_Term_Notes_Payable REAL,
+        #     Total_Liabilities REAL,
+        #     Paid_in_Capital REAL,
+        #     Distributions REAL,
+        #     Retained_Earnings REAL,
+        #     Total_Stockholders_Equity REAL,
+        #     Total_Liabilities_Equity REAL
+        # );''')
         cursor.execute('''
         CREATE TABLE balance_sheet (
             Month TEXT,
@@ -74,8 +126,14 @@ def load_data():
             Distributions REAL,
             Retained_Earnings REAL,
             Total_Stockholders_Equity REAL,
-            Total_Liabilities_Equity REAL
+            Total_Liabilities_Equity REAL,
+            Business REAL,
+            Region REAL,
+            Brand REAL,
+            Vice_President REAL,
+            State REAL
         );''')
+
 
         # Load balance_sheet CSV from 'data' folder
         balance_sheet_file = Path(__file__).parent / 'data/balance_sheet_2324.csv'
@@ -141,9 +199,7 @@ selected_metrics = st.sidebar.multiselect(
 # Create the dashboard layout
 st.title(':bar_chart: OJO Dashboard')
 
-# Section 1: Display Ratios Table
-st.subheader('Financial Ratios')
-st.dataframe(df_ratios)
+
 
 # Section 2: KPI Table
 st.subheader('Key Performance Indicators (KPIs)')
@@ -156,6 +212,15 @@ cols = st.columns(3)
 cols[0].metric("Total Revenue", f"${total_revenue:,.2f}")
 cols[1].metric("Cost of Goods Sold", f"${total_cogs:,.2f}")
 cols[2].metric("Net Income", f"${net_income:,.2f}")
+
+# Section 5: Total Revenue and Budget Miss Analysis
+st.subheader('Total Revenue and Budget Miss Analysis')
+budget_target = 1.2 * total_revenue  # Assuming budget is 20% higher than actual sales
+revenue_miss = budget_target - total_revenue
+
+cols = st.columns(2)
+cols[0].metric("Total Revenue", f"${total_revenue:,.2f}")
+cols[1].metric("Budget Miss", f"${revenue_miss:,.2f}", delta_color="inverse")
 
 # Section 3: Waterfall Chart with Custom Colors
 st.subheader('Waterfall Chart: Revenue Breakdown')
@@ -174,6 +239,10 @@ fig_waterfall = go.Figure(go.Waterfall(
 fig_waterfall.update_layout(title="Waterfall Chart of Revenue", showlegend=True)
 st.plotly_chart(fig_waterfall)
 
+# Section 1: Display Ratios Table
+st.subheader('Financial Ratios')
+st.dataframe(df_ratios)
+
 # Section 4: Sales and Operating Income Over Time (with user-selected metrics)
 st.subheader('Trends Over Time')
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -186,14 +255,6 @@ plt.xticks(rotation=45)
 plt.legend()
 st.pyplot(fig)
 
-# Section 5: Total Revenue and Budget Miss Analysis
-st.subheader('Total Revenue and Budget Miss Analysis')
-budget_target = 1.2 * total_revenue  # Assuming budget is 20% higher than actual sales
-revenue_miss = budget_target - total_revenue
-
-cols = st.columns(2)
-cols[0].metric("Total Revenue", f"${total_revenue:,.2f}")
-cols[1].metric("Budget Miss", f"${revenue_miss:,.2f}", delta_color="inverse")
 
 # Section 6: Correlation Heatmap of Financial Metrics
 st.subheader('Correlation Heatmap of Financial Metrics')
@@ -249,6 +310,77 @@ st.pyplot(fig_tax)
 st.subheader('Income Tax Breakdown Table')
 tax_breakdown = df_income[['Month', 'PreTax_Income', 'Income_Tax', 'Net_Income']]
 st.dataframe(tax_breakdown)
+
+# Sidebar for business and breakdown filters
+st.sidebar.header("Business Filters")
+
+# Check for missing values in the columns to ensure proper dropdown population
+# st.write("Checking for missing values in key filter columns:")
+# st.write("Business missing:", df_income['Business'].isnull().sum())
+# st.write("Region missing:", df_income['Region'].isnull().sum())
+# st.write("Brand missing:", df_income['Brand'].isnull().sum())
+# st.write("Vice President missing:", df_income['Vice_President'].isnull().sum())
+# st.write("State missing:", df_income['State'].isnull().sum())
+
+# Check that the columns exist and are populated
+if 'Business' not in df_income.columns or df_income['Business'].isnull().all():
+    st.error("The 'Business' column is missing or contains no data.")
+if 'Region' not in df_income.columns or df_income['Region'].isnull().all():
+    st.error("The 'Region' column is missing or contains no data.")
+if 'Brand' not in df_income.columns or df_income['Brand'].isnull().all():
+    st.error("The 'Brand' column is missing or contains no data.")
+if 'Vice_President' not in df_income.columns or df_income['Vice_President'].isnull().all():
+    st.error("The 'Vice_President' column is missing or contains no data.")
+if 'State' not in df_income.columns or df_income['State'].isnull().all():
+    st.error("The 'State' column is missing or contains no data.")
+
+# Filter by Business
+if df_income['Business'].notnull().any():
+    selected_business = st.sidebar.selectbox("Select Business", df_income['Business'].dropna().unique())
+else:
+    selected_business = None
+
+# Filter by Region
+if df_income['Region'].notnull().any():
+    selected_region = st.sidebar.selectbox("Select Region", df_income['Region'].dropna().unique())
+else:
+    selected_region = None
+
+# Filter by Brand
+if df_income['Brand'].notnull().any():
+    selected_brand = st.sidebar.selectbox("Select Brand", df_income['Brand'].dropna().unique())
+else:
+    selected_brand = None
+
+# Filter by Vice President
+if df_income['Vice_President'].notnull().any():
+    selected_vp = st.sidebar.selectbox("Select Vice President", df_income['Vice_President'].dropna().unique())
+else:
+    selected_vp = None
+
+# Filter by State
+if df_income['State'].notnull().any():
+    selected_state = st.sidebar.selectbox("Select State", df_income['State'].dropna().unique())
+else:
+    selected_state = None
+
+# Apply filters to the data
+if selected_business and selected_region and selected_brand and selected_vp and selected_state:
+    df_income_filtered = df_income[
+        (df_income['Month'] == selected_month) &
+        (df_income['Business'] == selected_business) &
+        (df_income['Region'] == selected_region) &
+        (df_income['Brand'] == selected_brand) &
+        (df_income['Vice_President'] == selected_vp) &
+        (df_income['State'] == selected_state)
+    ]
+    # st.write("Filtered Data:", df_income_filtered)
+else:
+    st.error("One or more filters are missing data, please check.")
+
+# income_statement_file = Path(__file__).parent / 'data/income_statement_2324.csv'
+# df_income = pd.read_csv(income_statement_file)
+# st.write(df_income.head())  # Display the first few rows to verify the data
 
 
 # Custom CSS for styling
