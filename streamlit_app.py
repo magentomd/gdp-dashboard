@@ -6,6 +6,8 @@ import seaborn as sns
 from pathlib import Path
 import plotly.graph_objects as go
 from openai import OpenAI
+import plotly.express as px
+
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["openai_api_key"])
@@ -243,28 +245,71 @@ st.plotly_chart(fig_waterfall)
 st.subheader('Financial Ratios')
 st.dataframe(df_ratios)
 
+# # Section 4: Sales and Operating Income Over Time (with user-selected metrics)
+# st.subheader('Trends Over Time')
+# fig, ax = plt.subplots(figsize=(10, 6))
+# for metric in selected_metrics:
+#     ax.plot(df_income['Month'], df_income[metric], label=metric)
+# plt.xlabel('Month')
+# plt.ylabel('Amount ($)')
+# plt.title('Trends in Selected Metrics')
+# plt.xticks(rotation=45)
+# plt.legend()
+# st.pyplot(fig)
+
 # Section 4: Sales and Operating Income Over Time (with user-selected metrics)
 st.subheader('Trends Over Time')
-fig, ax = plt.subplots(figsize=(10, 6))
+
+# Using Plotly for styling consistency
+fig_trends = go.Figure()
 for metric in selected_metrics:
-    ax.plot(df_income['Month'], df_income[metric], label=metric)
-plt.xlabel('Month')
-plt.ylabel('Amount ($)')
-plt.title('Trends in Selected Metrics')
-plt.xticks(rotation=45)
-plt.legend()
-st.pyplot(fig)
+    fig_trends.add_trace(go.Scatter(x=df_income['Month'], y=df_income[metric], mode='lines+markers', name=metric))
+
+fig_trends.update_layout(
+    title='Trends in Selected Metrics',
+    xaxis_title='Month',
+    yaxis_title='Amount ($)',
+    template='plotly_white',  # Matches the clean look
+    title_font=dict(size=20),
+    font=dict(size=12),
+    xaxis=dict(tickangle=-45),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+)
+
+st.plotly_chart(fig_trends)
 
 
 # Section 6: Correlation Heatmap of Financial Metrics
-st.subheader('Correlation Heatmap of Financial Metrics')
+# st.subheader('Correlation Heatmap of Financial Metrics')
 cols_to_analyze = ['Sales', 'Gross_Profit', 'Total_Operating_Expenses', 'Net_Income']
 df_corr = df_income[cols_to_analyze].corr()
 
 fig, ax = plt.subplots(figsize=(12, 8))
-sns.heatmap(df_corr, annot=True, cmap='coolwarm', ax=ax, linewidths=1.5, linecolor='white', fmt='.2f')
-ax.set_title('Correlation Heatmap of Financial Metrics', fontsize=16)
-st.pyplot(fig)
+# sns.heatmap(df_corr, annot=True, cmap='coolwarm', ax=ax, linewidths=1.5, linecolor='white', fmt='.2f')
+# ax.set_title('Correlation Heatmap of Financial Metrics', fontsize=16)
+# st.pyplot(fig)
+# Section 6: Correlation Heatmap of Financial Metrics
+# st.subheader('Correlation Heatmap of Financial Metrics')
+
+# Convert seaborn heatmap to plotly for styling consistency
+
+fig_heatmap = px.imshow(
+    df_corr,
+    text_auto=True,
+    aspect="auto",
+    color_continuous_scale="RdBu",
+    title="Correlation Heatmap of Financial Metrics"
+)
+
+fig_heatmap.update_layout(
+    template="plotly_white",
+    title_font=dict(size=20),
+    font=dict(size=12),
+    coloraxis_colorbar=dict(title="Correlation")
+)
+
+st.plotly_chart(fig_heatmap)
+
 
 # Analyze Correlation and Provide Insights
 st.subheader('Insights')
