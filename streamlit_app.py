@@ -28,24 +28,6 @@ def load_data():
         cursor = conn.cursor()
 
         # Create income_statement table
-        # cursor.execute('''
-        # CREATE TABLE income_statement (
-        #     Month TEXT,
-        #     Sales REAL,
-        #     Cost_of_Goods_Sold REAL,
-        #     Gross_Profit REAL,
-        #     Selling REAL,
-        #     Administrative REAL,
-        #     Total_Operating_Expenses REAL,
-        #     Operating_Income REAL,
-        #     Interest_Revenue REAL,
-        #     Dividend_Revenue REAL,
-        #     Interest_on_Loans REAL,
-        #     PreTax_Income REAL,
-        #     Income_Tax REAL,
-        #     Net_Income REAL
-        # );''')
-        # Create income_statement table
         cursor.execute('''
         CREATE TABLE income_statement (
             Month TEXT,
@@ -77,33 +59,6 @@ def load_data():
         df_income = pd.read_csv(income_statement_file)
         df_income.to_sql('income_statement', conn, if_exists='append', index=False)
 
-        # Create balance_sheet table
-        # cursor.execute('''
-        # CREATE TABLE balance_sheet (
-        #     Month TEXT,
-        #     Cash REAL,
-        #     Accounts_Receivable REAL,
-        #     Inventory REAL,
-        #     Supplies REAL,
-        #     Pre_Paids REAL,
-        #     Total_Current_Assets REAL,
-        #     Land REAL,
-        #     Buildings REAL,
-        #     Equipment REAL,
-        #     Less_accum_depreciation REAL,
-        #     Net_PPE REAL,
-        #     Total_Assets REAL,
-        #     Short_Term_Notes_Payable REAL,
-        #     Accounts_Payable REAL,
-        #     Total_Current_Liabilities REAL,
-        #     Long_Term_Notes_Payable REAL,
-        #     Total_Liabilities REAL,
-        #     Paid_in_Capital REAL,
-        #     Distributions REAL,
-        #     Retained_Earnings REAL,
-        #     Total_Stockholders_Equity REAL,
-        #     Total_Liabilities_Equity REAL
-        # );''')
         cursor.execute('''
         CREATE TABLE balance_sheet (
             Month TEXT,
@@ -224,6 +179,54 @@ cols = st.columns(2)
 cols[0].metric("Total Revenue", f"${total_revenue:,.2f}")
 cols[1].metric("Budget Miss", f"${revenue_miss:,.2f}", delta_color="inverse")
 
+cols_to_analyze = ['Sales', 'Gross_Profit', 'Total_Operating_Expenses', 'Net_Income']
+df_corr = df_income[cols_to_analyze].corr()
+correlation = df_corr.loc['Sales', 'Total_Operating_Expenses']
+
+# st.subheader("AI-Generated Insights")
+# user_input = st.text_area("Ask a question about the data or correlations (e.g., 'Show me the correlations between revenue and expenses'):")
+# if st.button("Get Insights"):
+#     # Prepare data context (e.g., the most relevant data to analyze)
+#     data_context = f"Total Revenue: ${total_revenue:,.2f}, Total Operating Expenses: ${df_income['Total_Operating_Expenses'].iloc[-1]:,.2f}, Correlation between Revenue and Expenses: {correlation:.2f}"
+    
+#     insights = get_openai_insights(user_input, data_context)
+#     st.write(insights)
+# Modify the AI Insights section
+st.subheader("AI-Generated Insights")
+user_input = st.text_area("Ask a question about the data or correlations (e.g., 'Show me the correlations between revenue and expenses'):")
+
+if st.button("Get Insights"):
+    # Prepare data context with information from various sections
+    kpi_context = f"Total Revenue: ${total_revenue:,.2f}, Total Operating Expenses: ${df_income['Total_Operating_Expenses'].iloc[-1]:,.2f}, Correlation between Revenue and Expenses: {correlation:.2f}"
+    
+    # Waterfall Chart Data
+    waterfall_context = f"Waterfall Chart Data: Sales: ${total_revenue:,.2f}, COGS: ${total_cogs:,.2f}, Operating Income: ${df_income['Operating_Income'].iloc[-1]:,.2f}, Net Income: ${net_income:,.2f}"
+
+    # Financial Ratios Data
+    ratios_summary = df_ratios.to_string(index=False)
+
+    # Trends Over Time Data
+    trends_summary = df_income_filtered[selected_metrics].to_string(index=False)
+
+    # Tax Analysis Data
+    average_tax = df_income['Income_Tax'].mean()
+    tax_analysis_context = f"Average Income Tax: ${average_tax:,.2f}, Income Tax Over Time: {df_income[['Month', 'Income_Tax']].to_string(index=False)}"
+
+    # Combine all data into a single context
+    combined_context = (
+        f"Here is the financial data:\n"
+        f"{kpi_context}\n"
+        f"{waterfall_context}\n"
+        f"Financial Ratios:\n{ratios_summary}\n"
+        f"Trends Over Time:\n{trends_summary}\n"
+        f"{tax_analysis_context}\n\n{user_input}"
+    )
+
+    insights = get_openai_insights(user_input, combined_context)
+    st.write(insights)
+
+
+
 # Section 3: Waterfall Chart with Custom Colors
 st.subheader('Waterfall Chart: Revenue Breakdown')
 fig_waterfall = go.Figure(go.Waterfall(
@@ -324,14 +327,14 @@ if abs(correlation) < 0.5:
     st.write(f"The correlation between Sales and Total Operating Expenses is low ({correlation:.2f}), indicating that changes in sales do not strongly impact operating expenses. This suggests that your operating costs may be more fixed and not directly tied to revenue fluctuations.")
 
 # Section 7: OpenAI Insights - User can query data and correlation
-st.subheader("AI-Generated Insights")
-user_input = st.text_area("Ask a question about the data or correlations (e.g., 'Show me the correlations between revenue and expenses'):")
-if st.button("Get Insights"):
-    # Prepare data context (e.g., the most relevant data to analyze)
-    data_context = f"Total Revenue: ${total_revenue:,.2f}, Total Operating Expenses: ${df_income['Total_Operating_Expenses'].iloc[-1]:,.2f}, Correlation between Revenue and Expenses: {correlation:.2f}"
+# st.subheader("AI-Generated Insights")
+# user_input = st.text_area("Ask a question about the data or correlations (e.g., 'Show me the correlations between revenue and expenses'):")
+# if st.button("Get Insights"):
+#     # Prepare data context (e.g., the most relevant data to analyze)
+#     data_context = f"Total Revenue: ${total_revenue:,.2f}, Total Operating Expenses: ${df_income['Total_Operating_Expenses'].iloc[-1]:,.2f}, Correlation between Revenue and Expenses: {correlation:.2f}"
     
-    insights = get_openai_insights(user_input, data_context)
-    st.write(insights)
+#     insights = get_openai_insights(user_input, data_context)
+#     st.write(insights)
 
 # Calculate the average income tax
 average_tax = df_income['Income_Tax'].mean()
