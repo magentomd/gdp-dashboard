@@ -7,7 +7,7 @@ from pathlib import Path
 import plotly.graph_objects as go
 from openai import OpenAI
 import plotly.express as px
-
+import requests
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["openai_api_key"])
@@ -18,6 +18,94 @@ st.set_page_config(
     page_icon=':bar_chart:',
     layout='wide'
 )
+
+# Initialize OpenAI client
+client_id = st.secrets["quickbooks_client_id"]
+client_secret = st.secrets["quickbooks_client_secret"]
+redirect_uri = "https://ojo-dashboard-tgftbskcp1m.streamlit.app/"
+company_id = st.secrets["quickbooks_company_id"]
+
+# Step 1: Authorization URL
+# auth_url = f"https://appcenter.intuit.com/connect/oauth2" \
+#            f"?client_id={client_id}" \
+#            f"&response_type=code" \
+#            f"&scope=com.intuit.quickbooks.accounting" \
+#            f"&redirect_uri={redirect_uri}" \
+#            f"&state=some_state_value"
+auth_url = f"https://appcenter.intuit.com/connect/oauth2" \
+           f"?client_id={client_id}" \
+           f"&response_type=code" \
+           f"&scope=com.intuit.quickbooks.accounting" \
+           f"&redirect_uri={redirect_uri}" \
+           f"&state=some_state_value"
+
+
+st.write(f"[Click here to authorize]({auth_url})")
+
+# Step 2: Function to exchange authorization code for tokens
+def exchange_code_for_tokens(auth_code):
+    url = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
+    payload = {
+        'grant_type': 'authorization_code',
+        'code': auth_code,
+        'redirect_uri': redirect_uri,
+        'client_id': client_id,
+        'client_secret': client_secret
+    }
+    
+    response = requests.post(url, headers=headers, data=payload)
+    
+    if response.status_code == 200:
+        token_data = response.json()
+        st.success("Access token and refresh token obtained!")
+        return token_data['access_token'], token_data['refresh_token']
+    else:
+        st.error(f"Error fetching access token: {response.status_code} - {response.text}")
+        return None, None
+
+# Step 3: Token handling
+auth_code = st.text_input("Enter authorization code")  # User inputs the authorization code after redirect
+access_token = None  # Initialize the variable
+refresh_token = None  # Initialize the variable
+
+if auth_code:
+    access_token, refresh_token = exchange_code_for_tokens(auth_code)
+
+# Fetch Profit and Loss report, passing the access_token as a parameter
+def fetch_profit_loss_report(access_token):
+    url = f"https://quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/json'
+    }
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 401:
+        st.warning("Access token expired, refreshing token...")
+        access_token = refresh_access_token()  # Assuming refresh_access_token is defined elsewhere
+        if access_token:
+            headers['Authorization'] = f'Bearer {access_token}'
+            response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        data = response.json()
+        return pd.DataFrame(data['Rows']['Row'])
+    else:
+        st.error(f"Error fetching data from QuickBooks: {response.status_code} - {response.text}")
+        return pd.DataFrame()
+
+# Check if we have a valid access token before making API requests
+if access_token:
+    # Display Profit and Loss report
+    st.subheader("QuickBooks Profit and Loss Report")
+    df_pl = fetch_profit_loss_report(access_token)  # Pass access_token to the function
+    st.dataframe(df_pl)
+else:
+    st.write("Please enter the authorization code to get the access token.")
 
 # Cache the database loading logic using st.cache_data
 @st.cache_data
