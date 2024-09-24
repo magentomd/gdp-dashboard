@@ -160,11 +160,11 @@ if 'access_token' in st.session_state:
 
 # Step 6: Fetch Balance Sheet report to test availability
     def fetch_balance_sheet_report(access_token):
-        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/BalanceSheet"
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/reports/BalanceSheet"
         params = {
             "accounting_method": "Accrual",  # Can be "Cash" or "Accrual"
-            "date_macro": "This Fiscal Year",  # Predefined date ranges like "This Month", "This Year", etc.
-            "minorversion": 73  # Including the latest minor version
+            "date_macro": "This Fiscal Year-to-date",  # Predefined date range
+            "minorversion": 73  # Use the latest version to ensure compatibility
         }
         headers = {
             'Authorization': f'Bearer {access_token}',
@@ -181,14 +181,24 @@ if 'access_token' in st.session_state:
 
         if response.status_code == 200:
             data = response.json()
-            return pd.DataFrame(data['Rows']['Row'])
+            # Assuming 'Rows' contains the relevant data
+            rows = data.get('Rows', {}).get('Row', [])
+            # Convert rows data into a more user-friendly format
+            balance_sheet_data = []
+            for row in rows:
+                # Only include rows that contain data and not just headers
+                if 'Summary' in row or 'ColData' in row:
+                    balance_sheet_data.append(row)
+            return pd.DataFrame(balance_sheet_data)
         else:
             st.error(f"Error fetching Balance Sheet report from QuickBooks: {response.status_code} - {response.text}")
             return pd.DataFrame()
 
+    # Display the Balance Sheet report
     st.subheader("QuickBooks Balance Sheet Report")
     df_bs = fetch_balance_sheet_report(st.session_state['access_token'])
     st.dataframe(df_bs)
+
 
 
 # Step 7: Fetch Profit and Loss report, handling token expiration
