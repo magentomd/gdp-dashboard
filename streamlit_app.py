@@ -61,10 +61,35 @@ if 'code' in query_params:
 
     exchange_code_for_tokens(auth_code)
 
-# Step 4: Use the access token to fetch data from QuickBooks API
+# Step 4: Function to refresh the access token
+def refresh_access_token(refresh_token):
+    url = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
+    payload = {
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'client_id': client_id,
+        'client_secret': client_secret
+    }
+    
+    response = requests.post(url, headers=headers, data=payload)
+    
+    if response.status_code == 200:
+        token_data = response.json()
+        st.session_state['access_token'] = token_data['access_token']  # Update the access token
+        st.session_state['refresh_token'] = token_data['refresh_token']  # Update refresh token
+        st.success("Access token refreshed successfully!")
+        return token_data['access_token']
+    else:
+        st.error(f"Error refreshing access token: {response.status_code} - {response.text}")
+        return None
+
+# Step 5: Fetch Profit and Loss report, handling token expiration
 if 'access_token' in st.session_state:
     def fetch_profit_loss_report(access_token):
-        # Use the sandbox URL if working with a sandbox company
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
         headers = {
             'Authorization': f'Bearer {access_token}',
@@ -72,13 +97,14 @@ if 'access_token' in st.session_state:
         }
         response = requests.get(url, headers=headers)
         
-        if response.status_code == 401:
+        if response.status_code == 401:  # Token expired, refresh it
             st.warning("Access token expired, refreshing token...")
-            # Add token refresh logic here
-        elif response.status_code == 403:
-            error_message = response.json().get('fault', {}).get('error', [{}])[0].get('message', 'Unknown error')
-            st.error(f"Authorization failed: {error_message}")
-        elif response.status_code == 200:
+            new_access_token = refresh_access_token(st.session_state['refresh_token'])
+            if new_access_token:
+                headers['Authorization'] = f'Bearer {new_access_token}'
+                response = requests.get(url, headers=headers)  # Retry with new access token
+
+        if response.status_code == 200:
             data = response.json()
             return pd.DataFrame(data['Rows']['Row'])
         else:
