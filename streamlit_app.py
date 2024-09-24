@@ -125,18 +125,23 @@ if 'access_token' in st.session_state:
 # Step 6: Fetch Balance Sheet report to test availability
     def fetch_balance_sheet_report(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/BalanceSheet"
+        params = {
+            "accounting_method": "Accrual",  # Can be "Cash" or "Accrual"
+            "date_macro": "This Fiscal Year",  # Predefined date ranges like "This Month", "This Year", etc.
+            "minorversion": 73  # Including the latest minor version
+        }
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/json'
         }
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, params=params)
         
         if response.status_code == 401:  # Token expired, refresh it
             st.warning("Access token expired, refreshing token...")
             new_access_token = refresh_access_token(st.session_state['refresh_token'])
             if new_access_token:
                 headers['Authorization'] = f'Bearer {new_access_token}'
-                response = requests.get(url, headers=headers)  # Retry with new access token
+                response = requests.get(url, headers=headers, params=params)  # Retry with new access token
 
         if response.status_code == 200:
             data = response.json()
@@ -149,34 +154,38 @@ if 'access_token' in st.session_state:
     df_bs = fetch_balance_sheet_report(st.session_state['access_token'])
     st.dataframe(df_bs)
 
+
 # Step 7: Fetch Profit and Loss report, handling token expiration
     def fetch_profit_loss_report(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
+        params = {
+            "accounting_method": "Accrual",  # Can be "Cash" or "Accrual"
+            "date_macro": "This Fiscal Year",  # You can customize this with other options like "This Month", "Last Fiscal Year", etc.
+            "minorversion": 73  # Use the latest version to ensure compatibility
+        }
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/json'
         }
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, params=params)
         
         if response.status_code == 401:  # Token expired, refresh it
             st.warning("Access token expired, refreshing token...")
             new_access_token = refresh_access_token(st.session_state['refresh_token'])
             if new_access_token:
                 headers['Authorization'] = f'Bearer {new_access_token}'
-                response = requests.get(url, headers=headers)  # Retry with new access token
+                response = requests.get(url, headers=headers, params=params)  # Retry with new access token
 
         if response.status_code == 200:
             data = response.json()
             return pd.DataFrame(data['Rows']['Row'])
         else:
-            st.error(f"Error fetching data from QuickBooks: {response.status_code} - {response.text}")
+            st.error(f"Error fetching Profit and Loss report from QuickBooks: {response.status_code} - {response.text}")
             return pd.DataFrame()
 
     st.subheader("QuickBooks Profit and Loss Report")
     df_pl = fetch_profit_loss_report(st.session_state['access_token'])
     st.dataframe(df_pl)
-else:
-    st.warning("Please authorize QuickBooks to fetch data.")
 
 
 # Initialize OpenAI client
