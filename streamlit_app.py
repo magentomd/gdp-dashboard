@@ -122,6 +122,42 @@ if 'access_token' in st.session_state:
     df_info = fetch_company_info(st.session_state['access_token'])
     st.dataframe(df_info)
 
+    def fetch_account_data(access_token):
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/account"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+        params = {
+            "minorversion": 73
+        }
+        
+        response = requests.post(url, headers=headers, params=params)
+        
+        if response.status_code == 401:  # Token expired, refresh it
+            st.warning("Access token expired, refreshing token...")
+            new_access_token = refresh_access_token(st.session_state['refresh_token'])
+            if new_access_token:
+                headers['Authorization'] = f'Bearer {new_access_token}'
+                response = requests.post(url, headers=headers, params=params)  # Retry with new access token
+
+        if response.status_code == 200:
+            data = response.json()
+            # Extract relevant account information
+            accounts = data.get('Account', [])
+            account_df = pd.DataFrame(accounts)  # Convert to DataFrame for display
+            return account_df
+        else:
+            st.error(f"Error fetching account data from QuickBooks: {response.status_code} - {response.text}")
+            return pd.DataFrame()
+
+    # Display the account data
+    st.subheader("QuickBooks Account Data")
+    df_account = fetch_account_data(st.session_state['access_token'])
+    st.dataframe(df_account)
+
+
 # Step 6: Fetch Balance Sheet report to test availability
     def fetch_balance_sheet_report(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/BalanceSheet"
