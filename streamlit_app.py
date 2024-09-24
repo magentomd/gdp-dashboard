@@ -96,6 +96,7 @@ def refresh_access_token(refresh_token):
 
 # Step 5: Fetch Company Info to validate connection
 if 'access_token' in st.session_state:
+
     # def fetch_company_info(access_token):
     #     url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/companyinfo/{company_id}"
     #     headers = {
@@ -113,14 +114,17 @@ if 'access_token' in st.session_state:
 
     #     if response.status_code == 200:
     #         data = response.json()
-    #         return pd.DataFrame([data])
+    #         st.write("Raw Company Info Data:", data)  # Print raw JSON data for review
+    #         return data
     #     else:
     #         st.error(f"Error fetching company info from QuickBooks: {response.status_code} - {response.text}")
-    #         return pd.DataFrame()
+    #         return None
 
-    # st.subheader("QuickBooks Company Info")
-    # df_info = fetch_company_info(st.session_state['access_token'])
-    # st.dataframe(df_info)
+    # # Fetch and display the company info
+    # company_info = fetch_company_info(st.session_state['access_token'])
+
+
+    # Function to display the company info data
     def fetch_company_info(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/companyinfo/{company_id}"
         headers = {
@@ -137,16 +141,11 @@ if 'access_token' in st.session_state:
                 response = requests.get(url, headers=headers)  # Retry with new access token
 
         if response.status_code == 200:
-            data = response.json()
-            st.write("Raw Company Info Data:", data)  # Print raw JSON data for review
+            data = response.json().get('CompanyInfo', {})  # Extract CompanyInfo object
             return data
         else:
             st.error(f"Error fetching company info from QuickBooks: {response.status_code} - {response.text}")
             return None
-
-    # Fetch and display the company info
-    company_info = fetch_company_info(st.session_state['access_token'])
-
 
     # Function to display the company info data
     def display_company_info(company_info):
@@ -156,17 +155,17 @@ if 'access_token' in st.session_state:
             # Display key company details
             st.write(f"**Company Name:** {company_info.get('CompanyName', 'N/A')}")
             st.write(f"**Legal Name:** {company_info.get('LegalName', 'N/A')}")
-            st.write(f"**Company Address:**")
             
+            st.write(f"**Company Address:**")
             if 'CompanyAddr' in company_info:
                 address = company_info['CompanyAddr']
                 st.write(f"{address.get('Line1', '')}")
                 st.write(f"{address.get('City', '')}, {address.get('CountrySubDivisionCode', '')} {address.get('PostalCode', '')}")
                 st.write(f"{address.get('Country', '')}")
-            
-            st.write(f"**Email Address:** {company_info.get('PrimaryEmailAddr', {}).get('Address', 'N/A')}")
+
+            st.write(f"**Email Address:** {company_info.get('Email', {}).get('Address', 'N/A')}")
             st.write(f"**Phone Number:** {company_info.get('PrimaryPhone', {}).get('FreeFormNumber', 'N/A')}")
-            st.write(f"**Industry Type:** {company_info.get('IndustryType', 'N/A')}")
+            st.write(f"**Industry Type:** {next((item['Value'] for item in company_info.get('NameValue', []) if item['Name'] == 'QBOIndustryType'), 'N/A')}")
             st.write(f"**Company Start Date:** {company_info.get('CompanyStartDate', 'N/A')}")
             st.write(f"**Fiscal Year Start:** {company_info.get('FiscalYearStartMonth', 'N/A')}")
             st.write(f"**Country:** {company_info.get('Country', 'N/A')}")
@@ -177,43 +176,6 @@ if 'access_token' in st.session_state:
     # Fetch and display the company info
     company_info = fetch_company_info(st.session_state['access_token'])
     display_company_info(company_info)
-
-
-    # def fetch_account_data(access_token):
-    #     url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/account"
-    #     headers = {
-    #         'Authorization': f'Bearer {access_token}',
-    #         'Accept': 'application/json',
-    #         'Content-Type': 'application/json'
-    #     }
-    #     params = {
-    #         "minorversion": 73
-    #     }
-        
-    #     response = requests.post(url, headers=headers, params=params)
-        
-    #     if response.status_code == 401:  # Token expired, refresh it
-    #         st.warning("Access token expired, refreshing token...")
-    #         new_access_token = refresh_access_token(st.session_state['refresh_token'])
-    #         if new_access_token:
-    #             headers['Authorization'] = f'Bearer {new_access_token}'
-    #             response = requests.post(url, headers=headers, params=params)  # Retry with new access token
-
-    #     if response.status_code == 200:
-    #         data = response.json()
-    #         # Extract relevant account information
-    #         accounts = data.get('Account', [])
-    #         account_df = pd.DataFrame(accounts)  # Convert to DataFrame for display
-    #         return account_df
-    #     else:
-    #         st.error(f"Error fetching account data from QuickBooks: {response.status_code} - {response.text}")
-    #         return pd.DataFrame()
-
-    # # Display the account data
-    # st.subheader("QuickBooks Account Data")
-    # df_account = fetch_account_data(st.session_state['access_token'])
-    # st.dataframe(df_account)
-
 
     # Step 6: Fetch Balance Sheet report to test availability
     def fetch_balance_sheet_report(access_token):
