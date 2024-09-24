@@ -158,7 +158,7 @@ if 'access_token' in st.session_state:
     st.dataframe(df_account)
 
 
-# Step 6: Fetch Balance Sheet report to test availability
+    # Step 6: Fetch Balance Sheet report to test availability
     def fetch_balance_sheet_report(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/reports/BalanceSheet"
         params = {
@@ -181,23 +181,47 @@ if 'access_token' in st.session_state:
 
         if response.status_code == 200:
             data = response.json()
-            # Assuming 'Rows' contains the relevant data
             rows = data.get('Rows', {}).get('Row', [])
-            # Convert rows data into a more user-friendly format
-            balance_sheet_data = []
-            for row in rows:
-                # Only include rows that contain data and not just headers
-                if 'Summary' in row or 'ColData' in row:
-                    balance_sheet_data.append(row)
-            return pd.DataFrame(balance_sheet_data)
+            return rows
         else:
             st.error(f"Error fetching Balance Sheet report from QuickBooks: {response.status_code} - {response.text}")
-            return pd.DataFrame()
+            return []
 
-    # Display the Balance Sheet report
-    st.subheader("QuickBooks Balance Sheet Report")
-    df_bs = fetch_balance_sheet_report(st.session_state['access_token'])
-    st.dataframe(df_bs)
+    # Function to display the balance sheet data
+    def display_balance_sheet_data(rows):
+        st.subheader("Balance Sheet Report")
+
+        for row in rows:
+            if 'Header' in row:
+                section_title = row['Header']['ColData'][0]['value']
+                st.write(f"### {section_title}")
+
+            if 'Rows' in row:
+                sub_rows = row['Rows'].get('Row', [])
+                for sub_row in sub_rows:
+                    if 'Header' in sub_row:
+                        sub_section_title = sub_row['Header']['ColData'][0]['value']
+                        st.write(f"#### {sub_section_title}")
+                    
+                    if 'Rows' in sub_row:
+                        items = sub_row['Rows']['Row']
+                        for item in items:
+                            if 'ColData' in item:
+                                item_name = item['ColData'][0].get('value', 'Unnamed Item')
+                                item_value = item['ColData'][1].get('value', '0.00')
+                                st.write(f"- **{item_name}:** ${item_value}")
+
+                    if 'Summary' in sub_row:
+                        summary_value = sub_row['Summary']['ColData'][1]['value']
+                        st.write(f"**Total {sub_section_title}:** ${summary_value}")
+
+            if 'Summary' in row:
+                section_total = row['Summary']['ColData'][1]['value']
+                st.write(f"**Total {section_title}:** ${section_total}")
+
+    # Fetch and display the balance sheet
+    rows = fetch_balance_sheet_report(st.session_state['access_token'])
+    display_balance_sheet_data(rows)
 
 
 
