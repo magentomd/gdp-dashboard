@@ -94,8 +94,62 @@ def refresh_access_token(refresh_token):
         st.error(f"Error refreshing access token: {response.status_code} - {response.text}")
         return None
 
-# Step 5: Fetch Profit and Loss report, handling token expiration
+# Step 5: Fetch Company Info to validate connection
 if 'access_token' in st.session_state:
+    def fetch_company_info(access_token):
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/companyinfo/{company_id}"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Accept': 'application/json'
+        }
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 401:  # Token expired, refresh it
+            st.warning("Access token expired, refreshing token...")
+            new_access_token = refresh_access_token(st.session_state['refresh_token'])
+            if new_access_token:
+                headers['Authorization'] = f'Bearer {new_access_token}'
+                response = requests.get(url, headers=headers)  # Retry with new access token
+
+        if response.status_code == 200:
+            data = response.json()
+            return pd.DataFrame([data])
+        else:
+            st.error(f"Error fetching company info from QuickBooks: {response.status_code} - {response.text}")
+            return pd.DataFrame()
+
+    st.subheader("QuickBooks Company Info")
+    df_info = fetch_company_info(st.session_state['access_token'])
+    st.dataframe(df_info)
+
+# Step 6: Fetch Balance Sheet report to test availability
+    def fetch_balance_sheet_report(access_token):
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/BalanceSheet"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Accept': 'application/json'
+        }
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 401:  # Token expired, refresh it
+            st.warning("Access token expired, refreshing token...")
+            new_access_token = refresh_access_token(st.session_state['refresh_token'])
+            if new_access_token:
+                headers['Authorization'] = f'Bearer {new_access_token}'
+                response = requests.get(url, headers=headers)  # Retry with new access token
+
+        if response.status_code == 200:
+            data = response.json()
+            return pd.DataFrame(data['Rows']['Row'])
+        else:
+            st.error(f"Error fetching Balance Sheet report from QuickBooks: {response.status_code} - {response.text}")
+            return pd.DataFrame()
+
+    st.subheader("QuickBooks Balance Sheet Report")
+    df_bs = fetch_balance_sheet_report(st.session_state['access_token'])
+    st.dataframe(df_bs)
+
+# Step 7: Fetch Profit and Loss report, handling token expiration
     def fetch_profit_loss_report(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
         headers = {
