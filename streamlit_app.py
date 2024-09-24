@@ -137,10 +137,16 @@ if 'access_token' in st.session_state:
                 response = requests.get(url, headers=headers)  # Retry with new access token
 
         if response.status_code == 200:
-            return response.json()  # Return the raw JSON data instead of a DataFrame
+            data = response.json()
+            st.write("Raw Company Info Data:", data)  # Print raw JSON data for review
+            return data
         else:
             st.error(f"Error fetching company info from QuickBooks: {response.status_code} - {response.text}")
             return None
+
+    # Fetch and display the company info
+    company_info = fetch_company_info(st.session_state['access_token'])
+
 
     # Function to display the company info data
     def display_company_info(company_info):
