@@ -7,7 +7,7 @@ from pathlib import Path
 import plotly.graph_objects as go
 from openai import OpenAI
 import plotly.express as px
-import request
+import requests
 
 # QuickBooks API credentials
 client_id = st.secrets["quickbooks_client_id"]
