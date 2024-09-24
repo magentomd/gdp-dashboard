@@ -9,6 +9,13 @@ from openai import OpenAI
 import plotly.express as px
 import requests
 
+# Set Streamlit configuration
+st.set_page_config(
+    page_title='OJO Dashboard',
+    page_icon=':bar_chart:',
+    layout='wide'
+)
+
 # QuickBooks API credentials
 client_id = st.secrets["quickbooks_client_id"]
 client_secret = st.secrets["quickbooks_client_secret"]
@@ -121,12 +128,7 @@ else:
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-# Set Streamlit configuration
-st.set_page_config(
-    page_title='OJO Dashboard',
-    page_icon=':bar_chart:',
-    layout='wide'
-)
+
 
 # Cache the database loading logic using st.cache_data
 @st.cache_data
