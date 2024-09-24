@@ -96,6 +96,31 @@ def refresh_access_token(refresh_token):
 
 # Step 5: Fetch Company Info to validate connection
 if 'access_token' in st.session_state:
+    # def fetch_company_info(access_token):
+    #     url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/companyinfo/{company_id}"
+    #     headers = {
+    #         'Authorization': f'Bearer {access_token}',
+    #         'Accept': 'application/json'
+    #     }
+    #     response = requests.get(url, headers=headers)
+        
+    #     if response.status_code == 401:  # Token expired, refresh it
+    #         st.warning("Access token expired, refreshing token...")
+    #         new_access_token = refresh_access_token(st.session_state['refresh_token'])
+    #         if new_access_token:
+    #             headers['Authorization'] = f'Bearer {new_access_token}'
+    #             response = requests.get(url, headers=headers)  # Retry with new access token
+
+    #     if response.status_code == 200:
+    #         data = response.json()
+    #         return pd.DataFrame([data])
+    #     else:
+    #         st.error(f"Error fetching company info from QuickBooks: {response.status_code} - {response.text}")
+    #         return pd.DataFrame()
+
+    # st.subheader("QuickBooks Company Info")
+    # df_info = fetch_company_info(st.session_state['access_token'])
+    # st.dataframe(df_info)
     def fetch_company_info(access_token):
         url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/companyinfo/{company_id}"
         headers = {
@@ -112,50 +137,76 @@ if 'access_token' in st.session_state:
                 response = requests.get(url, headers=headers)  # Retry with new access token
 
         if response.status_code == 200:
-            data = response.json()
-            return pd.DataFrame([data])
+            return response.json()  # Return the raw JSON data instead of a DataFrame
         else:
             st.error(f"Error fetching company info from QuickBooks: {response.status_code} - {response.text}")
-            return pd.DataFrame()
+            return None
 
-    st.subheader("QuickBooks Company Info")
-    df_info = fetch_company_info(st.session_state['access_token'])
-    st.dataframe(df_info)
+    # Function to display the company info data
+    def display_company_info(company_info):
+        st.subheader("Company Information")
 
-    def fetch_account_data(access_token):
-        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/account"
-        headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-        params = {
-            "minorversion": 73
-        }
-        
-        response = requests.post(url, headers=headers, params=params)
-        
-        if response.status_code == 401:  # Token expired, refresh it
-            st.warning("Access token expired, refreshing token...")
-            new_access_token = refresh_access_token(st.session_state['refresh_token'])
-            if new_access_token:
-                headers['Authorization'] = f'Bearer {new_access_token}'
-                response = requests.post(url, headers=headers, params=params)  # Retry with new access token
-
-        if response.status_code == 200:
-            data = response.json()
-            # Extract relevant account information
-            accounts = data.get('Account', [])
-            account_df = pd.DataFrame(accounts)  # Convert to DataFrame for display
-            return account_df
+        if company_info:
+            # Display key company details
+            st.write(f"**Company Name:** {company_info.get('CompanyName', 'N/A')}")
+            st.write(f"**Legal Name:** {company_info.get('LegalName', 'N/A')}")
+            st.write(f"**Company Address:**")
+            
+            if 'CompanyAddr' in company_info:
+                address = company_info['CompanyAddr']
+                st.write(f"{address.get('Line1', '')}")
+                st.write(f"{address.get('City', '')}, {address.get('CountrySubDivisionCode', '')} {address.get('PostalCode', '')}")
+                st.write(f"{address.get('Country', '')}")
+            
+            st.write(f"**Email Address:** {company_info.get('PrimaryEmailAddr', {}).get('Address', 'N/A')}")
+            st.write(f"**Phone Number:** {company_info.get('PrimaryPhone', {}).get('FreeFormNumber', 'N/A')}")
+            st.write(f"**Industry Type:** {company_info.get('IndustryType', 'N/A')}")
+            st.write(f"**Company Start Date:** {company_info.get('CompanyStartDate', 'N/A')}")
+            st.write(f"**Fiscal Year Start:** {company_info.get('FiscalYearStartMonth', 'N/A')}")
+            st.write(f"**Country:** {company_info.get('Country', 'N/A')}")
+            st.write(f"**Web Address:** {company_info.get('WebAddr', {}).get('URI', 'N/A')}")
         else:
-            st.error(f"Error fetching account data from QuickBooks: {response.status_code} - {response.text}")
-            return pd.DataFrame()
+            st.warning("No company information available.")
 
-    # Display the account data
-    st.subheader("QuickBooks Account Data")
-    df_account = fetch_account_data(st.session_state['access_token'])
-    st.dataframe(df_account)
+    # Fetch and display the company info
+    company_info = fetch_company_info(st.session_state['access_token'])
+    display_company_info(company_info)
+
+
+    # def fetch_account_data(access_token):
+    #     url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/account"
+    #     headers = {
+    #         'Authorization': f'Bearer {access_token}',
+    #         'Accept': 'application/json',
+    #         'Content-Type': 'application/json'
+    #     }
+    #     params = {
+    #         "minorversion": 73
+    #     }
+        
+    #     response = requests.post(url, headers=headers, params=params)
+        
+    #     if response.status_code == 401:  # Token expired, refresh it
+    #         st.warning("Access token expired, refreshing token...")
+    #         new_access_token = refresh_access_token(st.session_state['refresh_token'])
+    #         if new_access_token:
+    #             headers['Authorization'] = f'Bearer {new_access_token}'
+    #             response = requests.post(url, headers=headers, params=params)  # Retry with new access token
+
+    #     if response.status_code == 200:
+    #         data = response.json()
+    #         # Extract relevant account information
+    #         accounts = data.get('Account', [])
+    #         account_df = pd.DataFrame(accounts)  # Convert to DataFrame for display
+    #         return account_df
+    #     else:
+    #         st.error(f"Error fetching account data from QuickBooks: {response.status_code} - {response.text}")
+    #         return pd.DataFrame()
+
+    # # Display the account data
+    # st.subheader("QuickBooks Account Data")
+    # df_account = fetch_account_data(st.session_state['access_token'])
+    # st.dataframe(df_account)
 
 
     # Step 6: Fetch Balance Sheet report to test availability
@@ -226,36 +277,36 @@ if 'access_token' in st.session_state:
 
 
 # Step 7: Fetch Profit and Loss report, handling token expiration
-    def fetch_profit_loss_report(access_token):
-        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
-        params = {
-            "accounting_method": "Accrual",  # Can be "Cash" or "Accrual"
-            "date_macro": "This Fiscal Year",  # You can customize this with other options like "This Month", "Last Fiscal Year", etc.
-            "minorversion": 73  # Use the latest version to ensure compatibility
-        }
-        headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Accept': 'application/json'
-        }
-        response = requests.get(url, headers=headers, params=params)
+    # def fetch_profit_loss_report(access_token):
+    #     url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
+    #     params = {
+    #         "accounting_method": "Accrual",  # Can be "Cash" or "Accrual"
+    #         "date_macro": "This Fiscal Year",  # You can customize this with other options like "This Month", "Last Fiscal Year", etc.
+    #         "minorversion": 73  # Use the latest version to ensure compatibility
+    #     }
+    #     headers = {
+    #         'Authorization': f'Bearer {access_token}',
+    #         'Accept': 'application/json'
+    #     }
+    #     response = requests.get(url, headers=headers, params=params)
         
-        if response.status_code == 401:  # Token expired, refresh it
-            st.warning("Access token expired, refreshing token...")
-            new_access_token = refresh_access_token(st.session_state['refresh_token'])
-            if new_access_token:
-                headers['Authorization'] = f'Bearer {new_access_token}'
-                response = requests.get(url, headers=headers, params=params)  # Retry with new access token
+    #     if response.status_code == 401:  # Token expired, refresh it
+    #         st.warning("Access token expired, refreshing token...")
+    #         new_access_token = refresh_access_token(st.session_state['refresh_token'])
+    #         if new_access_token:
+    #             headers['Authorization'] = f'Bearer {new_access_token}'
+    #             response = requests.get(url, headers=headers, params=params)  # Retry with new access token
 
-        if response.status_code == 200:
-            data = response.json()
-            return pd.DataFrame(data['Rows']['Row'])
-        else:
-            st.error(f"Error fetching Profit and Loss report from QuickBooks: {response.status_code} - {response.text}")
-            return pd.DataFrame()
+    #     if response.status_code == 200:
+    #         data = response.json()
+    #         return pd.DataFrame(data['Rows']['Row'])
+    #     else:
+    #         st.error(f"Error fetching Profit and Loss report from QuickBooks: {response.status_code} - {response.text}")
+    #         return pd.DataFrame()
 
-    st.subheader("QuickBooks Profit and Loss Report")
-    df_pl = fetch_profit_loss_report(st.session_state['access_token'])
-    st.dataframe(df_pl)
+    # st.subheader("QuickBooks Profit and Loss Report")
+    # df_pl = fetch_profit_loss_report(st.session_state['access_token'])
+    # st.dataframe(df_pl)
 
 
 # Initialize OpenAI client
