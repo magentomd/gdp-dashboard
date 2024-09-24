@@ -64,14 +64,21 @@ if 'code' in query_params:
 # Step 4: Use the access token to fetch data from QuickBooks API
 if 'access_token' in st.session_state:
     def fetch_profit_loss_report(access_token):
-        url = f"https://quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
+        # Use the sandbox URL if working with a sandbox company
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/json'
         }
         response = requests.get(url, headers=headers)
         
-        if response.status_code == 200:
+        if response.status_code == 401:
+            st.warning("Access token expired, refreshing token...")
+            # Add token refresh logic here
+        elif response.status_code == 403:
+            error_message = response.json().get('fault', {}).get('error', [{}])[0].get('message', 'Unknown error')
+            st.error(f"Authorization failed: {error_message}")
+        elif response.status_code == 200:
             data = response.json()
             return pd.DataFrame(data['Rows']['Row'])
         else:
