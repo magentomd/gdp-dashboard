@@ -273,7 +273,6 @@ if 'access_token' in st.session_state:
             return None
     
     # Function to display the Profit and Loss data
-    # Function to display the Profit and Loss data
     def display_profit_loss(data):
         st.subheader("Profit and Loss Report")
 
@@ -306,6 +305,8 @@ if 'access_token' in st.session_state:
                 if len(summary_data) > 1:  # Check if summary_data has at least 2 items
                     summary_title = summary_data[0].get('value', 'Unnamed Summary')
                     summary_value = summary_data[1].get('value', 'N/A')  # Display N/A if missing
+                    if not summary_value:  # If summary_value is empty or None, set it to "N/A"
+                        summary_value = "N/A"
                     st.write(f"**{summary_title}:** ${summary_value}")
                 else:
                     st.write(f"**{section_title} Summary:** Data not available.")
@@ -323,7 +324,6 @@ if 'access_token' in st.session_state:
                 display_profit_loss(pl_data)
         else:
             st.warning("Please select valid start and end dates to view the report.")
-
 
 
 # Initialize OpenAI client
