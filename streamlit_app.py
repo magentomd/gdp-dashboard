@@ -242,13 +242,13 @@ if 'access_token' in st.session_state:
     rows = fetch_balance_sheet_report(st.session_state['access_token'])
     display_balance_sheet_data(rows)
 
-    # Function to fetch the Tax Summary report from QuickBooks
-    def fetch_tax_summary_report(access_token, start_date, end_date, agency_id="1"):
-        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/reports/TaxSummary"
+    # Function to fetch the Profit and Loss report from QuickBooks
+    def fetch_profit_loss_report(access_token, start_date, end_date, customer="1"):
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/reports/ProfitAndLoss"
         params = {
             "start_date": start_date,  # Set the start date
             "end_date": end_date,      # Set the end date
-            "agency_id": agency_id,    # Set the agency ID, default to "1"
+            "customer": customer,      # Set the customer ID
             "minorversion": 73         # Use the latest minor version
         }
         headers = {
@@ -269,30 +269,32 @@ if 'access_token' in st.session_state:
             data = response.json()
             return data
         else:
-            st.error(f"Error fetching Tax Summary report: {response.status_code} - {response.text}")
+            st.error(f"Error fetching Profit and Loss report: {response.status_code} - {response.text}")
             return None
 
-    # Function to display the Tax Summary data
-    def display_tax_summary(data):
-        st.subheader("Tax Summary Report")
+    # Function to display the Profit and Loss data
+    def display_profit_loss(data):
+        st.subheader("Profit and Loss Report")
 
         if not data or 'Rows' not in data:
-            st.warning("No tax summary data available.")
+            st.warning("No profit and loss data available.")
             return
         
         rows = data['Rows'].get('Row', [])
         
-        # Iterate over rows to display the relevant tax summary information
+        # Iterate over rows to display the relevant profit and loss information
         for row in rows:
-            if 'group' in row:
-                group_title = row['group']
-                st.write(f"### {group_title}")
+            if 'Header' in row:
+                section_title = row['Header']['ColData'][0]['value']
+                st.write(f"### {section_title}")
 
-            if 'ColData' in row:
-                col_data = row['ColData']
-                item_name = col_data[0].get('value', 'Unnamed Item')
-                item_value = col_data[1].get('value', '0.00')
-                st.write(f"- **{item_name}:** ${item_value}")
+            if 'Rows' in row:
+                sub_rows = row['Rows'].get('Row', [])
+                for sub_row in sub_rows:
+                    if 'ColData' in sub_row:
+                        item_name = sub_row['ColData'][0].get('value', 'Unnamed Item')
+                        item_value = sub_row['ColData'][1].get('value', '0.00')
+                        st.write(f"- **{item_name}:** ${item_value}")
             
             if 'Summary' in row:
                 summary_data = row['Summary']['ColData']
@@ -300,49 +302,15 @@ if 'access_token' in st.session_state:
                 summary_value = summary_data[1].get('value', '0.00')
                 st.write(f"**{summary_title}:** ${summary_value}")
 
-    # Fetch and display tax summary report
+    # Fetch and display profit and loss report
     if 'access_token' in st.session_state:
         start_date = st.date_input("Start Date", value=pd.Timestamp("2023-01-01"))
         end_date = st.date_input("End Date", value=pd.Timestamp("2023-12-31"))
         
-        # Fetch and display the tax summary report
-        tax_data = fetch_tax_summary_report(st.session_state['access_token'], start_date=start_date, end_date=end_date)
-        display_tax_summary(tax_data)
+        # Fetch and display the profit and loss report
+        pl_data = fetch_profit_loss_report(st.session_state['access_token'], start_date=start_date, end_date=end_date)
+        display_profit_loss(pl_data)
 
-
-
-
-# Step 7: Fetch Profit and Loss report, handling token expiration
-    # def fetch_profit_loss_report(access_token):
-    #     url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/report/ProfitAndLoss"
-    #     params = {
-    #         "accounting_method": "Accrual",  # Can be "Cash" or "Accrual"
-    #         "date_macro": "This Fiscal Year",  # You can customize this with other options like "This Month", "Last Fiscal Year", etc.
-    #         "minorversion": 73  # Use the latest version to ensure compatibility
-    #     }
-    #     headers = {
-    #         'Authorization': f'Bearer {access_token}',
-    #         'Accept': 'application/json'
-    #     }
-    #     response = requests.get(url, headers=headers, params=params)
-        
-    #     if response.status_code == 401:  # Token expired, refresh it
-    #         st.warning("Access token expired, refreshing token...")
-    #         new_access_token = refresh_access_token(st.session_state['refresh_token'])
-    #         if new_access_token:
-    #             headers['Authorization'] = f'Bearer {new_access_token}'
-    #             response = requests.get(url, headers=headers, params=params)  # Retry with new access token
-
-    #     if response.status_code == 200:
-    #         data = response.json()
-    #         return pd.DataFrame(data['Rows']['Row'])
-    #     else:
-    #         st.error(f"Error fetching Profit and Loss report from QuickBooks: {response.status_code} - {response.text}")
-    #         return pd.DataFrame()
-
-    # st.subheader("QuickBooks Profit and Loss Report")
-    # df_pl = fetch_profit_loss_report(st.session_state['access_token'])
-    # st.dataframe(df_pl)
 
 
 # Initialize OpenAI client
