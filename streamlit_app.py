@@ -300,19 +300,24 @@ if 'access_token' in st.session_state:
                 summary_data = row['Summary']['ColData']
                 if len(summary_data) > 1:  # Check if summary_data has at least 2 items
                     summary_title = summary_data[0].get('value', 'Unnamed Summary')
-                    summary_value = summary_data[1].get('value', '0.00')
+                    summary_value = summary_data[1].get('value', 'N/A')  # Display N/A if missing
                     st.write(f"**{summary_title}:** ${summary_value}")
                 else:
                     st.warning(f"Summary data is incomplete for section {section_title}")
 
-    # Fetch and display profit and loss report
+    # Fetch and display profit and loss report only after date selection
     if 'access_token' in st.session_state:
         start_date = st.date_input("Start Date", value=pd.Timestamp("2023-01-01"))
         end_date = st.date_input("End Date", value=pd.Timestamp("2023-12-31"))
         
-        # Fetch and display the profit and loss report
-        pl_data = fetch_profit_loss_report(st.session_state['access_token'], start_date=start_date, end_date=end_date)
-        display_profit_loss(pl_data)
+        # Ensure dates are selected before fetching the report
+        if start_date and end_date:
+            # Fetch and display the profit and loss report
+            pl_data = fetch_profit_loss_report(st.session_state['access_token'], start_date=start_date, end_date=end_date)
+            if pl_data:
+                display_profit_loss(pl_data)
+        else:
+            st.warning("Please select valid start and end dates to view the report.")
 
 
 
