@@ -242,6 +242,74 @@ if 'access_token' in st.session_state:
     rows = fetch_balance_sheet_report(st.session_state['access_token'])
     display_balance_sheet_data(rows)
 
+    # Function to fetch the Tax Summary report from QuickBooks
+    def fetch_tax_summary_report(access_token, start_date, end_date, agency_id="1"):
+        url = f"https://sandbox-quickbooks.api.intuit.com/v3/company/{company_id}/reports/TaxSummary"
+        params = {
+            "start_date": start_date,  # Set the start date
+            "end_date": end_date,      # Set the end date
+            "agency_id": agency_id,    # Set the agency ID, default to "1"
+            "minorversion": 73         # Use the latest minor version
+        }
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Accept': 'application/json'
+        }
+        
+        response = requests.get(url, headers=headers, params=params)
+        
+        if response.status_code == 401:  # Token expired, refresh it
+            st.warning("Access token expired, refreshing token...")
+            new_access_token = refresh_access_token(st.session_state['refresh_token'])
+            if new_access_token:
+                headers['Authorization'] = f'Bearer {new_access_token}'
+                response = requests.get(url, headers=headers, params=params)  # Retry with new access token
+
+        if response.status_code == 200:
+            data = response.json()
+            return data
+        else:
+            st.error(f"Error fetching Tax Summary report: {response.status_code} - {response.text}")
+            return None
+
+    # Function to display the Tax Summary data
+    def display_tax_summary(data):
+        st.subheader("Tax Summary Report")
+
+        if not data or 'Rows' not in data:
+            st.warning("No tax summary data available.")
+            return
+        
+        rows = data['Rows'].get('Row', [])
+        
+        # Iterate over rows to display the relevant tax summary information
+        for row in rows:
+            if 'group' in row:
+                group_title = row['group']
+                st.write(f"### {group_title}")
+
+            if 'ColData' in row:
+                col_data = row['ColData']
+                item_name = col_data[0].get('value', 'Unnamed Item')
+                item_value = col_data[1].get('value', '0.00')
+                st.write(f"- **{item_name}:** ${item_value}")
+            
+            if 'Summary' in row:
+                summary_data = row['Summary']['ColData']
+                summary_title = summary_data[0].get('value', 'Unnamed Summary')
+                summary_value = summary_data[1].get('value', '0.00')
+                st.write(f"**{summary_title}:** ${summary_value}")
+
+    # Fetch and display tax summary report
+    if 'access_token' in st.session_state:
+        start_date = st.date_input("Start Date", value=pd.Timestamp("2023-01-01"))
+        end_date = st.date_input("End Date", value=pd.Timestamp("2023-12-31"))
+        
+        # Fetch and display the tax summary report
+        tax_data = fetch_tax_summary_report(st.session_state['access_token'], start_date=start_date, end_date=end_date)
+        display_tax_summary(tax_data)
+
+
 
 
 # Step 7: Fetch Profit and Loss report, handling token expiration
