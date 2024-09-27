@@ -273,6 +273,7 @@ if 'access_token' in st.session_state:
             return None
     
     # Function to display the Profit and Loss data
+    # Function to display the Profit and Loss data
     def display_profit_loss(data):
         st.subheader("Profit and Loss Report")
 
@@ -284,18 +285,22 @@ if 'access_token' in st.session_state:
         
         # Iterate over rows to display the relevant profit and loss information
         for row in rows:
+            # Handle section headers (like "Income", "Expenses", etc.)
             if 'Header' in row:
                 section_title = row['Header']['ColData'][0].get('value', 'Unnamed Section')
                 st.write(f"### {section_title}")
 
+            # Handle sub-rows within each section
             if 'Rows' in row:
                 sub_rows = row['Rows'].get('Row', [])
                 for sub_row in sub_rows:
                     if 'ColData' in sub_row:
+                        # Handle each line item (like "Pest Control Services")
                         item_name = sub_row['ColData'][0].get('value', 'Unnamed Item')
                         item_value = sub_row['ColData'][1].get('value', '0.00')
                         st.write(f"- **{item_name}:** ${item_value}")
             
+            # Handle summary data (like "Total Income", "Total Expenses")
             if 'Summary' in row:
                 summary_data = row['Summary']['ColData']
                 if len(summary_data) > 1:  # Check if summary_data has at least 2 items
@@ -303,7 +308,7 @@ if 'access_token' in st.session_state:
                     summary_value = summary_data[1].get('value', 'N/A')  # Display N/A if missing
                     st.write(f"**{summary_title}:** ${summary_value}")
                 else:
-                    st.warning(f"Summary data is incomplete for section {section_title}")
+                    st.write(f"**{section_title} Summary:** Data not available.")
 
     # Fetch and display profit and loss report only after date selection
     if 'access_token' in st.session_state:
