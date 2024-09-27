@@ -271,7 +271,7 @@ if 'access_token' in st.session_state:
         else:
             st.error(f"Error fetching Profit and Loss report: {response.status_code} - {response.text}")
             return None
-
+    
     # Function to display the Profit and Loss data
     def display_profit_loss(data):
         st.subheader("Profit and Loss Report")
@@ -285,7 +285,7 @@ if 'access_token' in st.session_state:
         # Iterate over rows to display the relevant profit and loss information
         for row in rows:
             if 'Header' in row:
-                section_title = row['Header']['ColData'][0]['value']
+                section_title = row['Header']['ColData'][0].get('value', 'Unnamed Section')
                 st.write(f"### {section_title}")
 
             if 'Rows' in row:
@@ -298,9 +298,12 @@ if 'access_token' in st.session_state:
             
             if 'Summary' in row:
                 summary_data = row['Summary']['ColData']
-                summary_title = summary_data[0].get('value', 'Unnamed Summary')
-                summary_value = summary_data[1].get('value', '0.00')
-                st.write(f"**{summary_title}:** ${summary_value}")
+                if len(summary_data) > 1:  # Check if summary_data has at least 2 items
+                    summary_title = summary_data[0].get('value', 'Unnamed Summary')
+                    summary_value = summary_data[1].get('value', '0.00')
+                    st.write(f"**{summary_title}:** ${summary_value}")
+                else:
+                    st.warning(f"Summary data is incomplete for section {section_title}")
 
     # Fetch and display profit and loss report
     if 'access_token' in st.session_state:
